@@ -4,8 +4,6 @@ go 1.21.7
 
 require (
 	github.com/alexflint/go-arg v1.4.3
-	github.com/fabienm/go-logrus-formatters v1.0.0
-	github.com/gemnasium/logrus-graylog-hook/v3 v3.2.0
 	github.com/google/uuid v1.5.0
 	github.com/sirupsen/logrus v1.9.3
 	go.uber.org/atomic v1.11.0
