@@ -1,0 +1,22 @@
+version: '3'
+
+networks:
+  graylog_net:
+    driver: bridge
+  server_net:
+    driver: bridge
+
+services:
+
+  postgres:
+    image: postgres
+    tty: true
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=stringhashes
+    networks:
+      - server_net
+      
