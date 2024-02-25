@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+option go_package = "./grpchashcalc;grpchashcalc";
+
+package grpchashcalc;
+
+service HashCalc {
+    rpc Calc(stream InItem) returns (stream OutItem) {}
+}
+
+message InItem {
+    uint32 Index = 1;
+    bytes Data = 2;
+}
+
+message OutItem {
+    uint32 Index = 1;
+    bytes Hash = 2;
+}

@@ -1,0 +1,127 @@
+version: '3'
+
+networks:
+  graylog_net:
+    driver: bridge
+  server_net:
+    driver: bridge
+
+services:
+
+  postgres:
+    image: postgres
+    tty: true
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=stringhashes
+    networks:
+      - server_net
+
+  hashcalc:
+    image: hashcalc:v0.1.0
+    build:
+      context: ..
+      dockerfile: ./deployments/hashcalc.dockerfile
+    environment:
+      LOG_LEVEL: 6
+      LOG_GELF: "true"
+      LOG_URL: graylog:12201
+      LOG_HOSTNAME: hashcalc
+      LISTEN_ADDRESS: hashcalc:50051
+    restart: always
+    depends_on:
+      - graylog
+    ports:
+      - "50051:50051"
+    networks:
+      - server_net
+      - graylog_net
+
+  hashkeeper:
+    image: hashkeeper:v0.1.0
+    build:
+      context: ..
+      dockerfile: ./deployments/hashkeeper.dockerfile
+    environment:
+      LOG_LEVEL: 6
+      LOG_GELF: "true"
+      LOG_URL: graylog:12201
+      LOG_HOSTNAME: hashkeeper
+      HOST: hashkeeper
+      PORT: 8080
+      HASH_CALC_SERVER_ADDRESS: hashcalc:50051
+      PSQL_DSN: host=postgres port=5432 user=postgres password=postgres dbname=stringhashes sslmode=disable
+    restart: always
+    depends_on:
+      - hashcalc
+      - graylog
+    ports:
+      - "8080:8080"
+    networks:
+      - server_net
+      - graylog_net
+
+  mongo:
+    image: mongo:3
+    networks:
+      - graylog_net
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.8.10
+    environment:
+      - http.host=0.0.0.0
+      - transport.host=localhost
+      - network.host=0.0.0.0
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+    networks:
+      - graylog_net
+
+  graylog:
+    image: graylog/graylog:3.3
+    environment:
+      - GRAYLOG_PASSWORD_SECRET=somepasswordpepper
+      - GRAYLOG_ROOT_PASSWORD_SHA2=8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
+      - GRAYLOG_HTTP_EXTERNAL_URI=http://127.0.0.1:9000/
+    depends_on:
+      - mongo
+      - elasticsearch
+    ports:
+      # Graylog web interface and REST API
+      - 9000:9000
+      # Syslog TCP
+      - 1514:1514
+      # Syslog UDP
+      - 1514:1514/udp
+      # GELF TCP
+      - 12201:12201
+      # GELF UDP
+      - 12201:12201/udp
+    networks:
+      - graylog_net
+
+  graylog_settings:
+    image: quay.io/curl/curl:latest
+    depends_on:
+      graylog:
+        condition: service_healthy
+    networks:
+      - graylog_net
+    command: >-
+      curl
+      -u admin:admin
+      -H 'Accept: application/json'
+      -H 'Content-Type: application/json'
+      -H 'X-Requested-By: localhost'
+      -X POST 'http://graylog:9000/api/system/inputs?pretty=true'
+      -d '{ "title": "pdf_logs", "type": "org.graylog2.inputs.gelf.udp.GELFUDPInput", "configuration": { "bind_address": "0.0.0.0", "port": 12201, "recv_buffer_size": 1048576, "number_worker_threads": 8, "tls_cert_file": "", "tls_key_file": "admin", "tls_enable": false, "tls_key_password": "admin", "tls_client_auth": "disabled", "tls_client_auth_cert_file": "", "use_null_delimiter": true, "max_message_size": 2097152, "override_source": null, "decompress_size_limit": 8388608 }, "global": true }'
