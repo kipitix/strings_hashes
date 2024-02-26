@@ -74,3 +74,28 @@ test-rest-check:
 	@curl -X 'GET' \
 	'http://localhost:8080/check?ids=1,2,3,4,5' \
 	-H 'accept: application/json'
+
+run-hashcalc-race:
+	@go run -race ./hashcalc/cmd/
+
+run-hashkeeper-race:
+	@export PORT=8080 && go run -race ./hashkeeper/cmd/
+
+go-wrk-install:
+	@go install github.com/tsliwowicz/go-wrk@latest
+
+stress-rest-send:
+	@go-wrk -M 'POST' \
+	-H 'accept: application/json' \
+	-H 'Content-Type: application/json' \
+	-body '["string", "line", "строка"]' \
+	-c 10 \
+	-d 10 \
+	'http://localhost:8080/send'
+
+stress-rest-check:
+	@go-wrk -M 'GET' \
+	-H 'accept: application/json' \
+	-c 10 \
+	-d 10 \
+	'http://localhost:8080/check?ids=1,2,3,4,5'

@@ -3,6 +3,7 @@ package strhash
 import (
 	"context"
 	"hashkeeper/pkg/hashlog"
+	"sync"
 
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/sha3"
@@ -32,6 +33,8 @@ type sha3StrHashMakerImpl struct {
 
 	canCloseOutChan atomic.Bool
 	inProcessCount  atomic.Int32
+
+	mut sync.Mutex
 }
 
 func NewSha3StrHashMaker(cfg Sha3StrHashCfg) (StrHashMaker, error) {
@@ -74,10 +77,14 @@ func (mi *sha3StrHashMakerImpl) Run(ctx context.Context) error {
 						Index: in.Index,
 						Hash:  outData,
 					}
+
+					mi.mut.Lock()
 					mi.inProcessCount.Sub(1)
 					if mi.inProcessCount.Load() == 0 && mi.canCloseOutChan.Load() {
 						close(mi.outChan)
 					}
+					mi.mut.Unlock()
+
 				}(inItem)
 			} else {
 				mi.canCloseOutChan.Store(true)
@@ -91,11 +98,17 @@ func (mi *sha3StrHashMakerImpl) Run(ctx context.Context) error {
 	}
 }
 
-func (mi sha3StrHashMakerImpl) InChan() chan<- InItem {
+func (mi *sha3StrHashMakerImpl) InChan() chan<- InItem {
+	mi.mut.Lock()
+	defer mi.mut.Unlock()
+
 	return mi.inChan
 }
 
-func (mi sha3StrHashMakerImpl) OutChan() <-chan OutItem {
+func (mi *sha3StrHashMakerImpl) OutChan() <-chan OutItem {
+	mi.mut.Lock()
+	defer mi.mut.Unlock()
+
 	return mi.outChan
 }
 
