@@ -5,6 +5,7 @@ package server
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -116,7 +117,7 @@ func configureAPI(api *operations.HashkeeperAPI) http.Handler {
 			}
 		}
 
-		hashlog.LogReqID(ctxReqID).WithField("hashes", findResp.Hashes()).Trace("response data")
+		hashlog.LogReqID(ctxReqID).WithField("hashes", fmt.Sprintf("%+v", findResp.Hashes())).Trace("response data")
 		hashlog.LogReqID(ctxReqID).Debug("find hashes - request finished successfully")
 
 		return operations.NewPostSendOK().WithPayload(resPayload)
@@ -158,7 +159,7 @@ func configureAPI(api *operations.HashkeeperAPI) http.Handler {
 			}
 		}
 
-		hashlog.LogReqID(ctxReqID).WithField("hashes", calcResp.Hashes()).Trace("response data")
+		hashlog.LogReqID(ctxReqID).WithField("hashes", fmt.Sprintf("%+v", calcResp.Hashes())).Trace("response data")
 		hashlog.LogReqID(ctxReqID).Debug("calculate and store hashes - request finished successfully")
 
 		return operations.NewPostSendOK().WithPayload(resPayload)

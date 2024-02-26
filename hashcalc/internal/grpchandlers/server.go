@@ -64,7 +64,7 @@ func (hcs *HashCalcServerImpl) Calc(stream grpchashcalc.HashCalc_CalcServer) err
 				hashlog.LogErrorWithStack(err).Error("can`t send hash")
 			}
 
-			hashlog.LogReqID(stream.Context()).WithField("index", outItem.Index).WithField("hash", outItem.Hash).Trace("output sent")
+			hashlog.LogReqID(stream.Context()).WithField("index", outItem.Index).WithField("hash", fmt.Sprintf("%x", outItem.Hash)).Trace("output sent")
 
 			wg.Done()
 		}
@@ -91,7 +91,7 @@ func (hcs *HashCalcServerImpl) Calc(stream grpchashcalc.HashCalc_CalcServer) err
 
 		hashMaker.InChan() <- inData
 
-		hashlog.LogReqID(stream.Context()).WithField("index", inItem.Index).WithField("hash", inItem.Data).Trace("input received")
+		hashlog.LogReqID(stream.Context()).WithField("index", inItem.Index).WithField("data", string(inItem.Data)).Trace("input received")
 	}
 
 	wg.Wait()

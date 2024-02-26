@@ -10,9 +10,10 @@
 			"request": "launch",
 			"mode": "auto",
 			"program": "./hashcalc/cmd",
-			"console": "integratedTerminal",
+			// "console": "integratedTerminal",
 			"args": [
 				"--log-level=6",
+				"--log-gelf",
 				"--log-hostname=hashcalc",
 				// "--help",
 			]
@@ -23,12 +24,13 @@
 			"request": "launch",
 			"mode": "auto",
 			"program": "./hashkeeper/cmd",
-			"console": "integratedTerminal",
+			// "console": "integratedTerminal",
 			"env": {
 				"PORT": "8080"
 			},
 			"args": [
 				"--log-level=6",
+				"--log-gelf",
 				"--log-hostname=hashkeeper",
 				// "--help",
 			]
