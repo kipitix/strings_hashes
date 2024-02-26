@@ -69,27 +69,27 @@ func (mi *sha3StrHashMakerImpl) Run(ctx context.Context) error {
 	for {
 		select {
 		case inItem, sent := <-mi.inChan:
-			if sent {
-				mi.inProcessCount.Add(1)
-				go func(in InItem) {
-					outData := mi.calcFunc(in.Data)
-					mi.outChan <- OutItem{
-						Index: in.Index,
-						Hash:  outData,
-					}
-
-					mi.mut.Lock()
-					mi.inProcessCount.Sub(1)
-					if mi.inProcessCount.Load() == 0 && mi.canCloseOutChan.Load() {
-						close(mi.outChan)
-					}
-					mi.mut.Unlock()
-
-				}(inItem)
-			} else {
+			if !sent {
 				mi.canCloseOutChan.Store(true)
 				return nil
 			}
+
+			mi.inProcessCount.Add(1)
+			go func(in InItem) {
+				outData := mi.calcFunc(in.Data)
+				mi.outChan <- OutItem{
+					Index: in.Index,
+					Hash:  outData,
+				}
+
+				mi.mut.Lock()
+				mi.inProcessCount.Sub(1)
+				if mi.inProcessCount.Load() == 0 && mi.canCloseOutChan.Load() {
+					close(mi.outChan)
+				}
+				mi.mut.Unlock()
+
+			}(inItem)
 
 		case <-ctx.Done():
 			mi.canCloseOutChan.Store(true)
